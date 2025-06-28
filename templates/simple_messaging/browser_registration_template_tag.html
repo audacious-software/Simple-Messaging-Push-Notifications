@@ -1,0 +1,71 @@
+{% load static %}
+<script type="text/javascript">
+    const urlBase64ToUint8Array = function (base64String) {
+        var padding = '='.repeat((4 - base64String.length % 4) % 4);
+        var base64 = (base64String + padding)
+            .replace(/\-/g, '+')
+            .replace(/_/g, '/');
+
+        var rawData = window.atob(base64);
+        var outputArray = new Uint8Array(rawData.length);
+
+        for (var i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    const simpleMessagingPushRegister = function () {
+        if (navigator.serviceWorker) {
+            navigator.serviceWorker
+                .register("{% url 'simple_messaging_service_worker' %}", {
+                    scope: '/'
+                })
+                .then(function(serviceWorkerRegistration) {
+                    navigator.serviceWorker.ready.then((registration) => {
+                        serviceWorkerRegistration.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array("{{ public_key }}")
+                        }).then((pushSubscription) => {
+                            const subscriptionJson = pushSubscription.toJSON()
+
+                            fetch("{% url 'simple_messaging_register_for_messages' %}", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/x-www-form-urlencoded",
+                                },
+                                body: new URLSearchParams({
+                                    subscription: JSON.stringify(subscriptionJson),
+                                    identifier: "{{ identifier}}",
+                                    platform: "web"
+                                })
+                            });
+                        },
+                        (error) => {
+                            console.error(error);
+                        },);
+                    },
+                    (error) => {
+                            console.error(error);
+                    })
+                })
+        } else {
+            alert('This browser does not support push notification web workers.')
+        }
+    }
+
+    window.simpleMessagingRegisterPush = function () {
+        if ([undefined, null].includes(window.Notification)) {
+            alert('This browser does not support push notifications.')
+        } else if (window.Notification.permission === 'granted') {
+            simpleMessagingPushRegister()
+        } else if (window.Notification.permission !== 'denied') {
+            Notification.requestPermission().then((permission) => {
+                console.log(window.Notification.permission)
+                if (permission === 'granted') {
+                    simpleMessagingPushRegister()
+                }
+            })
+        }
+    }
+</script>

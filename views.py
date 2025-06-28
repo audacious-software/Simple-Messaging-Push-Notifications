@@ -18,12 +18,17 @@ from django.views.decorators.csrf import csrf_exempt
 from simple_messaging.models import IncomingMessage
 
 @csrf_exempt
-def register_for_messages(request): # pylint: disable=too-many-branches
+def simple_messaging_register_for_messages(request): # pylint: disable=too-many-branches
     messages = []
 
     identifier = request.POST.get('identifier', request.GET.get('identifier', None))
     platform = request.POST.get('platform', request.GET.get('platform', None))
     token = request.POST.get('token', request.GET.get('token', None))
+
+    if token is None:
+        subscription = request.POST.get('subscription', request.GET.get('subscription', None))
+
+        token = json.loads(subscription)
 
     if None in (identifier, platform, token,):
         payload = {
@@ -88,3 +93,12 @@ def simple_messaging_push_reply(request): # pylint: disable=too-many-branches
 #    }
 #
 #    return HttpResponse(json.dumps(payload, indent=2), content_type='application/json', status=500)
+
+def simple_messaging_push_browser_register(request):
+    return render(request, 'simple_messaging/browser_registration.html', status=200)
+
+def simple_messaging_service_worker(request):
+    response = render(request, 'simple_messaging/browser_registration_service_worker.js', content_type='text/javascript', status=200)
+    response['Service-Worker-Allowed'] = '/'
+
+    return response

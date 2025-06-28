@@ -1,6 +1,7 @@
 # pylint: disable=line-too-long, no-member
 
 import asyncio
+import base64
 import importlib
 import json
 import os
@@ -14,10 +15,11 @@ import firebase_admin
 import httpx
 import ssl
 
+import pywebpush
+
 from firebase_admin import messaging
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.http import HttpResponse
 from django.template import Template, Context
 from django.template.loader import render_to_string
@@ -237,6 +239,52 @@ def simple_messaging_push_message(channel, tokens, outgoing_message):
                 notification_ids.append(notification_id)
 
                 metadata['notification_ids'] = notification_ids
+
+        elif channel == 'web':
+            payload = {
+                'title': push_metadata.get('title', settings.SIMPLE_MESSAGING_DEFAULT_TITLE),
+                'message': message_text,
+                'report_url': reply_url,
+                'report_reporter': outgoing_message.current_destination(),
+                'report_responding_to': 'OutgoingMessage:%d' % outgoing_message.pk,
+            }
+
+            if outgoing_message.media.count() > 0:
+                for media_obj in outgoing_message.media.all():
+                    if media_obj.content_type.startswith('image/'):
+                        payload['image_url'] = '%s%s' % (settings.SITE_URL, media_obj.content_file.url)
+
+            positive_option = push_metadata.get('positive_option', None)
+
+            if positive_option is not None:
+                payload['include_positive_response'] = positive_option
+
+            negative_option = push_metadata.get('negative_option', None)
+
+            if negative_option is not None:
+                payload['include_negative_response'] = negative_option
+
+            neutral_option = push_metadata.get('neutral_option', None)
+
+            if neutral_option is not None:
+                payload['include_ok_response'] = neutral_option
+
+            url = push_metadata.get('url', None)
+
+            if url is not None:
+                payload['url'] = url
+
+            for token in tokens:
+                try:
+                    response = pywebpush.webpush(token, json.dumps(payload), vapid_private_key=settings.SIMPLE_MESSAGING_WEB_PRIVATE_KEY, vapid_claims={
+                        'sub': settings.SIMPLE_MESSAGING_WEB_SUBJECT
+                    })
+                except pywebpush.WebPushException:
+                    traceback.print_exc()
+
+                # notification_ids.append(notification_id)
+
+                # metadata['notification_ids'] = notification_ids
     except:
         traceback.print_exc()
 
@@ -272,8 +320,6 @@ def annotate_messsage(outgoing, request):
 
     if neutral_option is not None:
         push_details['neutral_option'] = neutral_option
-
-    print('push_details: %s' % push_details)
 
     if push_details:
         message_metadata['push_notification'] = push_details
