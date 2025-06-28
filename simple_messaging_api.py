@@ -135,7 +135,7 @@ def simple_messaging_push_message(channel, tokens, outgoing_message): # pylint: 
                 verify_context = ssl.create_default_context()
                 verify_context.load_cert_chain(settings.SIMPLE_MESSAGING_APNS_CERTIFICATE, keyfile=settings.SIMPLE_MESSAGING_APNS_KEY, password=settings.SIMPLE_MESSAGING_APNS_PASSWORD)
 
-                with httpx.Client(http2=True, verify=verify_context) as client:
+                with httpx.Client(http2=True, verify=verify_context, timeout=60) as client:
                     headers = {
                         'apns-id': notification_id,
                         'apns-topic': 'edu.harvard.srl.SARA.V2.audacious',
