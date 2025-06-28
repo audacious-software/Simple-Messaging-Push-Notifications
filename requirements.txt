@@ -10,11 +10,12 @@ bandit==1.8.5; python_version >= '3.9'
 Django==1.11.29; python_version < '3.0'
 Django==3.2.25; python_version >= '3.0' and python_version <= '3.7'
 Django==4.2.23; python_version >= '3.8'
-firebase-admin==6.9.0; python_version >= '3.7'
-firebase-admin==5.4.0; python_version >= '3.0' and python_version <= '3.6'
+firebase-admin==6.9.0; python_version >= '3.8'
+firebase-admin==5.4.0; python_version >= '3.0' and python_version <= '3.7'
 firebase-admin==3.2.1; python_version < '3.0'
 future==1.0.0
-httpx==0.24.1; python_version <= '3.7'
+httpx==0.24.1; python_version == '3.7' # firebase-admin pulls in versions for later Pythons
+httpx==0.22.0; python_version <= '3.6'
 jsonpath-ng==1.6.0; python_version < '3.0'
 jsonpath-ng==1.7.0; python_version >= '3.0'
 lockfile==0.12.2
