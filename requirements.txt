@@ -14,8 +14,6 @@ firebase-admin==6.9.0; python_version >= '3.7'
 firebase-admin==5.4.0; python_version >= '3.0' and python_version <= '3.6'
 firebase-admin==3.2.1; python_version < '3.0'
 future==1.0.0
-httpx==0.28.1; python_version >= '3.8'
-httpx==0.24.1; python_version <= '3.7'
 jsonpath-ng==1.6.0; python_version < '3.0'
 jsonpath-ng==1.7.0; python_version >= '3.0'
 lockfile==0.12.2
