@@ -1,3 +1,5 @@
+# pylint: disable=line-too-long
+
 from django.conf import settings
 
 from django.core.checks import Error, Warning, register # pylint: disable=redefined-builtin
@@ -52,7 +54,7 @@ def check_apple_push_setup(app_configs, **kwargs): # pylint: disable=unused-argu
 
     return errors
 
-def check_apple_push_setup(app_configs, **kwargs): # pylint: disable=unused-argument
+def check_web_push_setup(app_configs, **kwargs): # pylint: disable=unused-argument
     errors = []
 
     if hasattr(settings, 'SIMPLE_MESSAGING_WEB_PRIVATE_KEY') is False:

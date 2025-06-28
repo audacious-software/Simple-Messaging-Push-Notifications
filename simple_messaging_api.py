@@ -1,19 +1,14 @@
 # pylint: disable=line-too-long, no-member
 
-import asyncio
-import base64
 import importlib
 import json
-import os
-import re
-import uuid
-
+import ssl
 import traceback
+import uuid
 
 import aioapns
 import firebase_admin
 import httpx
-import ssl
 
 import pywebpush
 
@@ -21,7 +16,6 @@ from firebase_admin import messaging
 
 from django.conf import settings
 from django.http import HttpResponse
-from django.template import Template, Context
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
@@ -47,28 +41,25 @@ def process_outgoing_message(outgoing_message, metadata=None): # pylint: disable
 
     module_tokens = []
 
-    try:
-        for app in settings.INSTALLED_APPS:
-            try:
-                message_module = importlib.import_module('.simple_messaging_api', package=app)
+    for app in settings.INSTALLED_APPS: # pylint: disable=too-many-nested-blocks
+        try:
+            message_module = importlib.import_module('.simple_messaging_api', package=app)
 
-                module_tokens = message_module.simple_messaging_fetch_tokens(destination)
+            module_tokens = message_module.simple_messaging_fetch_tokens(destination)
 
-                if module_tokens is not None:
-                    for channel, token_list in module_tokens.items():
-                        channel_tokens = tokens.get(channel, [])
+            if module_tokens is not None:
+                for channel, token_list in module_tokens.items():
+                    channel_tokens = tokens.get(channel, [])
 
-                        for token in token_list:
-                            if (token in channel_tokens) is False:
-                                channel_tokens.append(token)
+                    for token in token_list:
+                        if (token in channel_tokens) is False:
+                            channel_tokens.append(token)
 
-                        tokens[channel] = channel_tokens
-            except ImportError:
-                pass
-            except AttributeError:
-                pass
-    except:
-        traceback.print_exc()
+                    tokens[channel] = channel_tokens
+        except ImportError:
+            pass
+        except AttributeError:
+            pass
 
     transmitted = False
 
@@ -118,7 +109,7 @@ async def send_ios_notification(token, outgoing_message, notification_id):
     await apns_cert_client.send_notification(request)
     await apns_key_client.send_notification(request)
 
-def simple_messaging_push_message(channel, tokens, outgoing_message):
+def simple_messaging_push_message(channel, tokens, outgoing_message): # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     metadata = {}
 
     try:
@@ -285,7 +276,7 @@ def simple_messaging_push_message(channel, tokens, outgoing_message):
                 # notification_ids.append(notification_id)
 
                 # metadata['notification_ids'] = notification_ids
-    except:
+    except: # pylint: disable=bare-except
         traceback.print_exc()
 
     return metadata
@@ -334,7 +325,7 @@ def simple_messaging_custom_console_ui(context): # pylint: disable=invalid-name
     include_ui = True
 
     try:
-        from simple_messaging_switchboard.models import Channel, ChannelType
+        from simple_messaging_switchboard.models import Channel, ChannelType  # pylint: disable=import-outside-toplevel
 
         loopback_type = ChannelType.objects.filter(package_name='simple_messaging_loopback').first()
 

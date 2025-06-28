@@ -1,3 +1,5 @@
+# pylint: disable=line-too-long
+
 try:
     from django.conf.urls import url
 except ImportError:

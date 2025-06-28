@@ -1,16 +1,10 @@
-# pylint: disable=line-too-long
+# pylint: disable=line-too-long, no-member
+
 import importlib
 import json
 
-import traceback
-
-import arrow
-import phonenumbers
-
 from django.conf import settings
-from django.contrib.admin.views.decorators import staff_member_required
-from django.core.management import call_command
-from django.http import Http404, HttpResponse
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -18,9 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from simple_messaging.models import IncomingMessage
 
 @csrf_exempt
-def simple_messaging_register_for_messages(request): # pylint: disable=too-many-branches
-    messages = []
-
+def simple_messaging_register_for_messages(request): # pylint: disable=too-many-branches, invalid-name
     identifier = request.POST.get('identifier', request.GET.get('identifier', None))
     platform = request.POST.get('platform', request.GET.get('platform', None))
     token = request.POST.get('token', request.GET.get('token', None))
@@ -94,7 +86,7 @@ def simple_messaging_push_reply(request): # pylint: disable=too-many-branches
 #
 #    return HttpResponse(json.dumps(payload, indent=2), content_type='application/json', status=500)
 
-def simple_messaging_push_browser_register(request):
+def simple_messaging_push_browser_register(request): # pylint: disable=invalid-name
     return render(request, 'simple_messaging/browser_registration.html', status=200)
 
 def simple_messaging_service_worker(request):
