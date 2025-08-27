@@ -22,7 +22,7 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__) # pylint: disable=invalid-name
 
-def process_outgoing_message(outgoing_message, metadata=None): # pylint: disable=too-many-branches, too-many-locals
+def process_outgoing_message(outgoing_message, metadata=None): # pylint: disable=too-many-branches, too-many-locals, too-many-statements
     if metadata is None:
         metadata = {
             'tokens_to_clear': []
