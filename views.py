@@ -17,6 +17,8 @@ def simple_messaging_register_for_messages(request): # pylint: disable=too-many-
     platform = request.POST.get('platform', request.GET.get('platform', None))
     token = request.POST.get('token', request.GET.get('token', None))
 
+    print('simple_messaging_register_for_messages: %s -- %s -- %s', identifier, platform, token)
+
     if token is None:
         subscription = request.POST.get('subscription', request.GET.get('subscription', None))
 

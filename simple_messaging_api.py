@@ -2,6 +2,7 @@
 
 import importlib
 import json
+import logging
 import ssl
 import traceback
 import uuid
@@ -9,7 +10,6 @@ import uuid
 import aioapns
 import firebase_admin
 import httpx
-
 import pywebpush
 
 from firebase_admin import messaging
@@ -20,9 +20,13 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
+logger = logging.getLogger(__name__) # pylint: disable=invalid-name
+
 def process_outgoing_message(outgoing_message, metadata=None): # pylint: disable=too-many-branches, too-many-locals
     if metadata is None:
-        metadata = {}
+        metadata = {
+            'tokens_to_clear': []
+        }
 
     # Likely local user ID, not addressable string. Lookup using custom implementation of
     #
@@ -76,6 +80,12 @@ def process_outgoing_message(outgoing_message, metadata=None): # pylint: disable
                     if (channel_key in metadata) is False:
                         metadata[channel_key] = {}
 
+                    to_clear = new_metadata.get('tokens_to_clear', [])
+
+                    metadata['tokens_to_clear'].extend(to_clear)
+
+                    del new_metadata['tokens_to_clear']
+
                     metadata[channel_key].update(new_metadata)
 
                     transmitted = True
@@ -83,6 +93,23 @@ def process_outgoing_message(outgoing_message, metadata=None): # pylint: disable
                 pass
             except AttributeError:
                 pass
+
+    to_clear = metadata.get('tokens_to_clear', [])
+
+    logging.info('to_clear = %s', to_clear)
+
+    if len(to_clear) > 0:
+        for app in settings.INSTALLED_APPS:
+            try:
+                message_module = importlib.import_module('.simple_messaging_api', package=app)
+
+                message_module.simple_messaging_clear_tokens(destination, to_clear)
+            except ImportError:
+                pass
+            except AttributeError:
+                pass
+
+    del metadata['tokens_to_clear']
 
     if transmitted is False:
         metadata['error'] = 'Unable to find push notification channels to transmit message.'
@@ -110,7 +137,9 @@ async def send_ios_notification(token, outgoing_message, notification_id):
     await apns_key_client.send_notification(request)
 
 def simple_messaging_push_message(channel, tokens, outgoing_message): # pylint: disable=too-many-locals, too-many-branches, too-many-statements
-    metadata = {}
+    metadata = {
+        'tokens_to_clear': []
+    }
 
     try:
         metadata.update(json.loads(outgoing_message.message_metadata))
@@ -177,15 +206,28 @@ def simple_messaging_push_message(channel, tokens, outgoing_message): # pylint: 
                     if neutral_option is not None:
                         payload['include_ok_response'] = neutral_option
 
+                    sent_okay = False
+
                     for base_url in [settings.SIMPLE_MESSAGING_APNS_URL, settings.SIMPLE_MESSAGING_APNS_URL_SANDBOX]:
                         send_url = base_url + token
 
                         response = client.post(send_url, json=payload, headers=headers)
 
+                        logger.info('resp: %s', response)
+                        logger.info('status: %s', response.status_code)
+                        logger.info('header: %s', dict(response.headers))
+                        logger.info('body: %s', response.content)
+
+                        if response.status_code == 200:
+                            sent_okay = True
+
                         if metadata.get('notification_ids', None) is None:
                             metadata['notification_ids'] = []
 
                         metadata['notification_ids'].append(dict(response.headers))
+
+                    if sent_okay is False:
+                        metadata['tokens_to_clear'].append(token)
 
         elif channel == 'android':
             try:
@@ -225,11 +267,14 @@ def simple_messaging_push_message(channel, tokens, outgoing_message): # pylint: 
             for token in tokens:
                 message = messaging.Message(data=payload, token=token)
 
-                notification_id = messaging.send(message)
+                try:
+                    notification_id = messaging.send(message)
 
-                notification_ids.append(notification_id)
+                    notification_ids.append(notification_id)
 
-                metadata['notification_ids'] = notification_ids
+                    metadata['notification_ids'] = notification_ids
+                except firebase_admin.exceptions.InvalidArgumentError:
+                    metadata['tokens_to_clear'].append(token)
 
         elif channel == 'web':
             payload = {
